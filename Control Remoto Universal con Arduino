@@ -1,0 +1,149 @@
+// Constants for the remote control
+const int RECEIVER_PIN = 2; // Pin for the IR receiver
+const int NUM_BUTTONS = 8; // Number of buttons on the remote
+const int BUTTON_PINS[NUM_BUTTONS] = {3, 4, 5, 6, 7, 8, 9, 10}; // Pins for each button
+
+// Constants for the device
+const int DEVICE_PIN = 12; // Pin for the device
+const int ON_VALUE = 100; // Value to turn the device on
+const int OFF_VALUE = 0; // Value to turn the device off
+
+// Variables for the remote control
+int buttonValues[NUM_BUTTONS]; // Array to store the values of each button
+int lastButtonPressed = -1; // Index of the last button pressed
+
+// Function to initialize the remote control
+void setup() {
+  // Set the receiver pin as an input
+  pinMode(RECEIVER_PIN, INPUT);
+
+  // Set the button pins as inputs with pull-up resistors
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    pinMode(BUTTON_PINS[i], INPUT_PULLUP);
+  }
+
+  // Set the device pin as an output
+  pinMode(DEVICE_PIN, OUTPUT);
+
+  // Turn the device off at the start
+  digitalWrite(DEVICE_PIN, OFF_VALUE);
+}
+
+// Function to read the values of the buttons on the remote control
+void readButtons() {
+  // Read the values of the buttons
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    buttonValues[i] = digitalRead(BUTTON_PINS[i]);
+  }
+
+  // Find the index of the last button pressed
+  int newLastButtonPressed = -1;
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    if (buttonValues[i] == LOW) {
+      newLastButtonPressed = i;
+      break;
+    }
+  }
+
+  // Update the last button pressed if it has changed
+  if (newLastButtonPressed != lastButtonPressed) {
+    lastButtonPressed = newLastButtonPressed;
+
+    // Print the name of the button that was pressed
+    if (lastButtonPressed == 0) {
+      Serial.println("Power");
+    } else if (lastButtonPressed == 1) {
+      Serial.println("Volume up");
+    } else if (lastButtonPressed == 2) {
+      Serial.println("Volume down");
+    } else if (lastButtonPressed == 3) {
+      Serial.println("Channel up");
+    } else if (lastButtonPressed == 4) {
+      Serial.println("Channel down");
+    } else if (lastButtonPressed == 5) {
+      Serial.println("Mute");
+    } else if (lastButtonPressed == 6) {
+      Serial.println("Input");
+    } else if (lastButtonPressed == 7) {
+      Serial.println("Info");
+    }
+  }
+}
+
+// Function to read the IR signal from the receiver
+void readIR() {
+  // Read the IR signal from the receiver
+  int irValue = digitalRead(RECEIVER_PIN);
+
+  // If the IR signal has been received
+  if (irValue == LOW) {
+    // Wait for the IR signal to end
+    while (digitalRead(RECEIVER_PIN) == LOW);
+
+    // Print the name of the button that was pressed
+    String buttonName = getIRButtonName(irValue);
+    Serial.println(buttonName);
+
+    // If the power button was pressed
+    if (buttonName == "Power") {
+      // Toggle the device
+      if (digitalRead(DEVICE_PIN) == ON_VALUE) {
+        digitalWrite(DEVICE_PIN, OFF_VALUE);
+      } else {
+        digitalWrite(DEVICE_PIN, ON_VALUE);
+      }
+    }
+  }
+}
+
+// Function to get the name of the button based on the IR signal
+String getIRButtonName(int irValue) {
+  // Array of IR button codes
+  int buttonCodes[NUM_BUTTONS] = {32, 16, 48, 52, 24, 12, 44, 36};
+
+  // Find the index of the button that matches the IR code
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    if (irValue == buttonCodes[i]) {
+      return getButtonName(i);
+    }
+  }
+
+  // If the button code is not found, return an empty string
+  return "";
+}
+
+// Function to get the name of the button based on the index
+String getButtonName(int buttonIndex) {
+  // Array of button names
+  String buttonNames[NUM_BUTTONS] = {"Power", "Volume up", "Volume down",
+                                     "Channel up", "Channel down", "Mute",
+                                     "Input", "Info"};
+
+  // Return the name of the button
+  return buttonNames[buttonIndex];
+}
+
+// Function to update the device based on the last button pressed
+void updateDevice() {
+  // If the last button pressed is the power button
+  if (lastButtonPressed == 0) {
+    // Toggle the device
+    if (digitalRead(DEVICE_PIN) == ON_VALUE) {
+      digitalWrite(DEVICE_PIN, OFF_VALUE);
+    } else {
+      digitalWrite(DEVICE_PIN, ON_VALUE);
+    }
+  }
+}
+
+// Function to loop through the program
+void loop() {
+  // Read the values of the buttons on the remote control
+  readButtons();
+
+  // Read the IR signal from the receiver
+  readIR();
+
+  // Update the device based on the last button pressed
+  updateDevice();
+}
